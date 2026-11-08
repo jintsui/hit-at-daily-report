@@ -1,0 +1,17 @@
+# 数据与中间产物
+data/
+_extract/
+_xlsx/
+_scripts/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 生成的报告
+*.html
+!scripts/template.html
+
+# 系统文件
+Thumbs.db
+.DS_Store

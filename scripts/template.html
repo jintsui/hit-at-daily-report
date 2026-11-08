@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>/*__REPORT_TITLE__*/</title>
+<style>
+:root{
+  --sage:#7B9E89; --sage-light:#A4BFB4; --sage-dark:#4A6E5C;
+  --amber:#D4A857; --amber-light:#E5C485; --amber-dark:#A07F3D;
+  --clay:#C77764; --clay-light:#E0A091; --clay-dark:#9B5040;
+  --bg:#F5F1EA; --bg-card:#FFFFFF; --grid:#E5DFD8;
+  --fg:#2C2926; --fg-muted:#6B6661;
+  --blue:#5B7C99; --purple:#8E7BA8; --teal:#5FA3A0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Source Sans Pro","Microsoft YaHei","微软雅黑",sans-serif;background:var(--bg);color:var(--fg);line-height:1.5;padding:24px 32px;max-width:1320px;margin:0 auto}
+
+/* header */
+.report-header{border-bottom:2px solid var(--sage-dark);padding-bottom:16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.report-header h1{font-size:27px;font-weight:700;color:var(--sage-dark);letter-spacing:.5px}
+.report-header .meta{font-size:13px;color:var(--fg-muted);margin-top:6px}
+.report-header .meta strong{color:var(--sage-dark)}
+.src-note{font-size:11px;color:#8a8f8c;margin-top:4px;max-width:760px}
+#lang-toggle,#upload-toggle{flex:0 0 auto;border:1px solid var(--sage-dark);background:var(--bg-card);color:var(--sage-dark);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer;font-weight:600}
+#lang-toggle:hover,#upload-toggle:hover{background:var(--sage-dark);color:#fff}
+.hdr-actions{display:flex;gap:8px;flex:0 0 auto}
+#drop-modal{position:fixed;inset:0;background:rgba(30,26,22,.5);display:none;align-items:center;justify-content:center;z-index:60}
+#drop-modal.show{display:flex}
+#drop-box{background:#fff;border-radius:8px;padding:24px;width:520px;max-width:92vw;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+#drop-box h3{color:var(--sage-dark);margin-bottom:6px;font-size:17px}
+#drop-box p{font-size:12.5px;color:var(--fg-muted);margin-bottom:14px}
+#drop-zone{border:2px dashed var(--sage-light);border-radius:6px;padding:26px;text-align:center;color:var(--fg-muted);font-size:13px;cursor:pointer;background:#fbfaf7}
+#drop-zone.hover{border-color:var(--sage-dark);background:#f0f4ed}
+#drop-zone b{color:var(--sage-dark)}
+#drop-list{font-size:12px;margin:10px 0;color:var(--sage-dark);min-height:18px}
+#drop-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+#drop-actions button{border-radius:4px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--sage-dark)}
+#drop-run{background:var(--sage-dark);color:#fff}
+#drop-cancel{background:#fff;color:var(--sage-dark)}
+#drop-msg{font-size:12.5px;margin-top:10px}
+
+/* nav */
+#layer-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:30}
+#layer-nav button{border:1px solid var(--grid);background:var(--bg-card);color:var(--fg-muted);border-radius:4px;padding:9px 18px;font-size:14px;cursor:pointer;font-weight:600;transition:.15s}
+#layer-nav button:hover{border-color:var(--sage)}
+#layer-nav button.active{background:var(--sage-dark);border-color:var(--sage-dark);color:#fff}
+
+.section{background:var(--bg-card);border:1px solid var(--grid);border-radius:5px;padding:22px 26px;margin-bottom:22px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.section h2{font-size:19px;font-weight:600;color:var(--sage-dark);border-bottom:1px solid var(--grid);padding-bottom:8px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section h2 .kicker{font-size:11px;letter-spacing:1px;color:var(--fg-muted);font-weight:600;text-transform:uppercase}
+.grid{display:grid;gap:18px}
+.grid.c2{grid-template-columns:1fr 1fr}
+.grid.c3{grid-template-columns:1fr 1fr 1fr}
+.grid.c2-1{grid-template-columns:1.35fr 1fr}
+@media(max-width:1000px){.grid.c2,.grid.c3,.grid.c2-1{grid-template-columns:1fr}}
+.panel-title{font-size:13px;font-weight:600;color:var(--sage-dark);margin-bottom:6px}
+.panel-sub{font-size:11px;color:var(--fg-muted);margin-bottom:8px}
+.chart{width:100%;height:300px}
+.chart.tall{height:380px}
+
+/* KPI tiles */
+.kpis{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:6px}
+.kpi{flex:1 1 190px;min-width:170px;padding:16px 18px;border:1px solid var(--grid);border-left:4px solid var(--sage);border-radius:5px;background:var(--bg-card)}
+.kpi.amber{border-left-color:var(--amber-dark)}
+.kpi.clay{border-left-color:var(--clay-dark)}
+.kpi.neutral{border-left-color:var(--grid)}
+.kpi .k-label{font-size:12px;color:var(--fg-muted);font-weight:600}
+.kpi .k-value{font-size:26px;font-weight:700;color:var(--sage-dark);margin:4px 0 2px;letter-spacing:.5px}
+.kpi.amber .k-value{color:var(--amber-dark)}
+.kpi.clay .k-value{color:var(--clay-dark)}
+.kpi .k-sub{font-size:11px;color:var(--fg-muted)}
+
+/* conclusion cards */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:900px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--grid);border-radius:5px;padding:14px 16px;border-top:3px solid var(--sage);background:linear-gradient(180deg,#fbfaf7,#fff)}
+.card.amber{border-top-color:var(--amber-dark)}
+.card.clay{border-top-color:var(--clay-dark)}
+.card .c-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:var(--sage);border-radius:3px;padding:2px 8px;margin-bottom:8px}
+.card.amber .c-tag{background:var(--amber-dark)}
+.card.clay .c-tag{background:var(--clay-dark)}
+.card .c-title{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--fg)}
+.card .c-body{font-size:12.5px;color:var(--fg-muted)}
+
+/* tables */
+.tbl-wrap{overflow:auto;max-height:420px;border:1px solid var(--grid);border-radius:4px}
+table.data{border-collapse:collapse;width:100%;font-size:12px;font-family:"Microsoft YaHei",sans-serif}
+table.data th{background:#eef3ec;color:#2d4a3a;font-weight:600;padding:8px 10px;border-bottom:2px solid #c7d4c4;text-align:left;white-space:nowrap;position:sticky;top:0}
+table.data td{padding:7px 10px;border-bottom:1px solid #eee8e0;white-space:nowrap}
+table.data tbody tr:hover{background:#f6f8f4}
+table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabular-nums}
+.mut{color:#a9a49e}
+.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:#eef3ec;color:var(--sage-dark);font-weight:600}
+.common-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.common-chip{font-size:12px;background:#f0f4ed;border:1px solid #d8e2d4;border-radius:4px;padding:5px 11px;color:#3a5245}
+.common-chip b{color:var(--sage-dark);font-weight:700}
+.common-chip span{color:#8a9089;font-size:11px;margin-right:5px}
+
+details.concl{border:1px solid var(--grid);border-radius:5px;padding:10px 14px;margin-top:14px;background:#fbfaf7}
+details.concl summary{cursor:pointer;font-weight:600;color:var(--sage-dark);font-size:13.5px}
+details.concl .body{font-size:12.5px;color:var(--fg-muted);margin-top:8px}
+details.concl ul{margin:6px 0 0 18px}
+details.concl li{margin:3px 0}
+
+/* map */
+.map-wrap{position:relative;border:1px solid var(--grid);border-radius:5px;overflow:hidden;background:#1d2420}
+#map-canvas{display:block;width:100%;height:760px;cursor:grab;touch-action:none}
+#map-canvas.dragging{cursor:grabbing}
+#map-zoom{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+#map-zoom button{width:32px;height:32px;border:1px solid var(--grid);background:rgba(255,255,255,.94);color:var(--sage-dark);border-radius:4px;font-size:16px;font-weight:700;cursor:pointer;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+#map-zoom button:hover{background:var(--sage-dark);color:#fff}
+.map-legend{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.92);border-radius:4px;padding:8px 10px;font-size:11.5px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.map-legend label{display:flex;align-items:center;gap:6px;cursor:pointer;padding:1px 0}
+.map-legend .dot{width:10px;height:10px;border-radius:50%}
+.map-controls{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.map-controls button{border:1px solid var(--sage-dark);background:var(--bg-card);color:var(--sage-dark);border-radius:4px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600}
+.map-controls button:hover{background:var(--sage-dark);color:#fff}
+.map-controls .speedbtn.active{background:var(--sage-dark);color:#fff}
+#map-time{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sage-dark);font-size:14px;min-width:64px}
+#map-slider{flex:1;min-width:220px;accent-color:var(--sage-dark)}
+.footer{text-align:center;font-size:11.5px;color:var(--fg-muted);padding:18px 0 8px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div>
+    <h1 id="report-title">—</h1>
+    <div class="meta">
+      <span data-i18n="meta.port"></span>:<span id="port">—</span>
+      <span id="port-label" class="mut"></span> ·
+      <span data-i18n="meta.window"></span>:<strong id="data-window">—</strong> ·
+      <span data-i18n="meta.date"></span>:<span id="report-date">—</span>
+    </div>
+    <div class="src-note" id="src-note"></div>
+  </div>
+  <div class="hdr-actions">
+    <button id="upload-toggle" data-i18n="g.upload">上传数据</button>
+    <button id="lang-toggle">EN</button>
+  </div>
+</header>
+
+<div id="drop-modal">
+  <div id="drop-box">
+    <h3 data-i18n="g.upload.title"></h3>
+    <p data-i18n="g.upload.hint"></p>
+    <div id="drop-zone"></div>
+    <input id="drop-input" type="file" multiple accept=".zip,.xlsx,.csv" class="hidden">
+    <div id="drop-list"></div>
+    <div id="drop-msg"></div>
+    <div id="drop-actions"><button id="drop-cancel" data-i18n="g.upload.cancel"></button><button id="drop-run" data-i18n="g.upload.run"></button></div>
+  </div>
+</div>
+
+<nav id="layer-nav"></nav>
+
+<main id="sections"></main>
+
+<footer class="footer" data-i18n="footer"></footer>
+
+<script>/*__ECHARTS__*/</script>
+<script>window.RD = /*__REPORT_DATA__*/;</script>
+<script>
+/* ===================== i18n ===================== */
+var LANG = (function(){try{return localStorage.getItem('hit-lang')||'zh'}catch(e){return 'zh'}})();
+var I18N = {
+  "meta.port":["港","Port"],"meta.window":["数据窗口","Data window"],"meta.date":["报告日期","Report date"],
+  "footer":["HIT AT 效率诊断日报 · nGen 遥测 + Daily AT Movement 驱动 · WellInsight 团队出品","HIT AT Efficiency Diagnostic Daily · driven by nGen Telemetry + Daily AT Movement · WellInsight Team"],
+  "nav.conclusion":["核心判断","Core judgment"],"nav.description":["描述 · 今天发生了什么","Profile · what happened"],
+  "nav.diagnosis":["诊断 · 堵点在哪","Diagnose · bottlenecks"],"nav.focus":["聚焦 · 异常与行动","Focus · issues & actions"],
+  "s.conclusion.k":"01 / Conclusion","s.conclusion.t":["今日核心判断","Today's core judgment"],
+  "s.conclusion.sub":["六个关键指标与四条优先观察，先看全局再下钻。","Six KPIs and four priority observations — overview first."],
+  "s.description.k":"02 / Profile","s.description.t":["描述 · 今天发生了什么","Profile · what happened today"],
+  "s.diagnosis.k":"03 / Diagnosis","s.diagnosis.t":["诊断 · 堵点在哪","Diagnosis · where are the bottlenecks"],
+  "s.focus.k":"04 / Focus","s.focus.t":["聚焦 · 异常与行动","Focus · abnormalities & actions"],
+  "p.fleet.title":["单车作业与运行对照","Per-unit work vs. operation"],
+  "p.fleet.sub":["柱=当日完成箱量，线=当日里程(km)；右表为能耗与稼动明细。","Bars = daily moves, line = mileage (km). Table shows energy & utilisation."],
+  "p.size.title":["箱型结构","Container size mix"],"p.size.sub":["按 20/22/45 英尺统计箱位移动作业。","Moves by 20/22/45 ft."],
+  "p.flow.title":["流向与装卸结构","Flow & discharge/load mix"],"p.flow.sub":["VSDS=卸船入堆场，VSLD=堆场装船。","VSDS = discharge to yard, VSLD = load from yard."],
+  "p.rhythm.title":["分时作业节奏","Hourly work rhythm"],"p.rhythm.sub":["柱=每小时完成箱量，线=该时段活跃车辆数。","Bars = moves per hour, line = active vehicles."],
+  "p.qc.title":["岸桥任务分配 · 每小时箱数","Quay-crane allocation · moves per hour"],
+  "p.qc.sub":["按岸桥(BQ1~BQ4)堆叠；柱高=每小时总箱量。","Stacked by quay-crane (BQ1–BQ4); bar height = moves per hour."],
+  "p.yard.title":["堆场任务分配 · 每小时箱数","Yard allocation · moves per hour"],
+  "p.yard.sub":["按「堆场-贝位」(如 N2-067)铺开；颜色越深箱量越多。","By yard block-bay (e.g. N2-067); darker = more moves."],
+  "p.slow.title":["AT 箱时 > 60 分钟 · 箱清单","Box-time > 60 min · container list"],
+  "p.slow.sub":["单箱完成耗时超过 60 分钟的作业记录，按耗时降序。","Moves whose completion time exceeds 60 min, descending."],
+  "t.rank":["#","#"],"t.dur":["耗时(min)","Duration(min)"],"t.qc":["岸桥","Crane"],
+  "t.bay":["堆场-贝位","Yard-bay"],"t.size":["箱型","Size"],"t.start":["起始","Start"],
+  "c.dir":["流向","Flow"],"c.qc":["岸桥","Crane"],"c.bay":["高频贝位","Top bays"],"c.size":["箱型","Size"],"c.p90":["超过 P90","Above P90"],
+  "p.cycle.title":["单箱完成耗时(P50 / P90)","Move completion time (P50 / P90)"],
+  "p.cycle.sub":["min/箱；VSDS 与 VSLD 分列对比。","min per move; VSDS vs VSLD."],
+  "p.stage.title":["作业阶段时长占比","Time share by task stage"],"p.stage.sub":["按秒级采样累计(五车合计)。","Accumulated from second-level sampling (5 units)."],
+  "p.seg.title":["各物理段速度与行驶里程","Speed & mileage by physical segment"],
+  "p.seg.sub":["柱=该段行驶里程(km)，线=该段平均车速(m/s)。","Bars = distance (km), line = avg speed (m/s)."],
+  "p.park.title":["停车热点 · 按时段×区域","Parking hotspots · time × area"],
+  "p.park.sub":["区域按取箱/交箱作业锚点最近归类(远离锚点>20 记为其他，近似口径)；柱高=停车时长(分钟)。","Areas by nearest pick/drop anchor (>20 away = other, approximate); bar height = parked minutes."],
+  "z.quay":["岸桥区","Quay"],"z.yard":["堆场区","Yard"],"z.other":["其他","Other"],
+  "p.active.title":["分时车队活跃度","Hourly fleet activity"],"p.active.sub":["柱=活跃车辆数，线=车队移动时长(min)。","Bars = active units, line = total moving minutes."],
+  "p.energy.title":["能耗效率对照","Energy efficiency"],"p.energy.sub":["单箱电耗(kWh/箱) 与 单公里电耗(kWh/km)。","kWh per box and kWh per km."],
+  "p.error.title":["高频故障码 Top 10","Top 10 fault codes"],"p.error.sub":["按去抖后的独立事件数排序。","Ranked by de-bounced distinct events."],
+  "p.interv.title":["人工介入分布","Manual interventions"],"p.interv.sub":["来自操作日志。","From the operation log."],
+  "p.map.title":["全场轨迹与时间回放","Site-wide trajectory & replay"],
+  "p.map.sub":["淡线=全天全程轨迹；亮线=已播放轨迹；圆点=当前时刻位置。","Faint = full-day path; bright = played path; dot = current position."],
+  "g.play":["播放","Play"],"g.pause":["暂停","Pause"],"g.reset":["重置","Reset"],"g.heat":["热力图","Heatmap"],
+  "t.vehicle":["车号","Unit"],"t.boxes":["箱量","Moves"],"t.mileage":["里程(km)","Mileage"],"t.energy":["电耗(kWh)","Energy"],
+  "t.power":[ "开机(h)","Power h"],"t.motor":["电机(h)","Motor h"],"t.epb":["kWh/箱","kWh/box"],"t.epk":["kWh/km","kWh/km"],
+  "t.moving":["移动(min)","Moving"],"t.avgspeed":["均速(m/s)","Avg spd"],
+  "t.dir":["流向","Flow"],"t.n":["样本数","n"],"t.p50":["P50(min)","P50"],"t.p90":["P90(min)","P90"],"t.mean":["均值(min)","Mean"],
+  "t.code":["故障码","Code"],"t.events":["独立事件","Events"],"t.samples":["采样点数","Samples"],
+  "t.op":["操作","Operation"],"t.count":["次数","Count"],"t.vehicle2":["车辆","Units"],"t.hits":["命中记录","Matches"],
+  "t.soc":["SOC 区间","SOC range"],"t.charge":["充电次数","Charges"],
+  "x.hour":["小时","Hour"],"x.count":["箱量","Moves"],
+  "act.title":["行动建议","Recommended actions"],
+  "note.title":["数据口径与说明","Data basis & notes"],
+  "g.upload":["上传数据","Upload"],
+  "g.upload.title":["上传数据并重算","Upload data & rebuild"],
+  "g.upload.hint":["拖入 ZIP(车辆遥测/能耗/日志 CSV) 与 XLSX(位移数据)，或点击选择；重算将覆盖式更新本报告。需通过本地服务(启动报告.bat)打开。","Drop the ZIP (telemetry/energy/log CSVs) and the XLSX (movement), or click to select. Rebuild overwrites this report. Requires the local service."],
+  "g.upload.zone":["拖拽文件到此处，或 <b>点击选择</b>","Drop files here or <b>click to select</b>"],
+  "g.upload.cancel":["取消","Cancel"],
+  "g.upload.run":["重算并更新","Rebuild"],
+  "g.upload.nofile":["请先选择文件","Please select files first"],
+  "g.upload.running":["正在重算，请稍候…","Rebuilding, please wait…"],
+  "g.upload.ok":["重算完成，正在载入新报告…","Rebuild done, loading…"],
+  "g.upload.fail":["重算失败：","Rebuild failed: "]
+};
+function s(k){var v=I18N[k];if(!v)return k;return LANG==='en'?v[1]:v[0];}
+function t(o){ if(o===null||o===undefined)return o; if(typeof o==='object'&&!Array.isArray(o)) return (o[LANG]!==undefined?o[LANG]:o.zh); return o;}
+function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function n1(x){return (x===null||x===undefined||isNaN(x))?'—':Number(x).toFixed(1);}
+function n0(x){return (x===null||x===undefined||isNaN(x))?'—':Math.round(Number(x));}
+
+var COLORS=['#4A6E5C','#C77764','#D4A857','#5B7C99','#8E7BA8','#5FA3A0'];
+document.title = (LANG==='en'?'HIT AT Efficiency Diagnostic Daily ':'HIT AT 效率诊断日报 ') + RD.meta.report_date;
+
+/* ===================== header ===================== */
+function renderHeader(){
+  document.getElementById('report-title').textContent=(LANG==='en'?'HIT AT Efficiency Diagnostic Daily · ':'HIT AT 效率诊断日报 · ')+RD.meta.report_date;
+  document.getElementById('port').textContent=RD.meta.port;
+  document.getElementById('port-label').textContent=t(RD.meta.port_label);
+  document.getElementById('data-window').textContent=RD.meta.data_window;
+  document.getElementById('report-date').textContent=RD.meta.report_date;
+  document.getElementById('src-note').textContent=t(RD.source_note);
+  document.getElementById('lang-toggle').textContent=(LANG==='en'?'中文':'EN');
+  document.querySelectorAll('[data-i18n]').forEach(function(el){el.textContent=s(el.getAttribute('data-i18n'));});
+}
+
+/* ===================== charts ===================== */
+var CHARTS={};
+function mk(id){var el=document.getElementById(id);if(!el)return null;var c=echarts.init(el);CHARTS[id]=c;return c;}
+function axisBase(){return{axisLine:{lineStyle:{color:'#c9c3ba'}},axisLabel:{color:'#6B6661',fontSize:11},splitLine:{lineStyle:{color:'#efeae3'}}};}
+var QCMAP={'512':'BQ1','522':'BQ2','532':'BQ3','542':'BQ4'};
+function qcName(q){return QCMAP[q]||((LANG==='en'?'QC ':'岸桥 ')+q);}
+
+function renderConclusion(){
+  var k='<section class="section" id="sec-conclusion"><h2><span class="kicker">'+s('s.conclusion.k')+'</span>'+s('s.conclusion.t')+'</h2>'
+    +'<div class="panel-sub">'+s('s.conclusion.sub')+'</div><div class="kpis">';
+  RD.kpi.forEach(function(x){
+    k+='<div class="kpi '+x.tone+'"><div class="k-label">'+esc(t(x.label))+'</div><div class="k-value">'+esc(x.value)+'</div><div class="k-sub">'+esc(t(x.sub))+'</div></div>';
+  });
+  k+='</div><div class="cards" style="margin-top:18px">';
+  RD.conclusions.forEach(function(x){
+    k+='<div class="card '+x.tone+'"><div class="c-tag">'+esc(t(x.tag))+'</div><div class="c-title">'+esc(t(x.title))+'</div><div class="c-body">'+esc(t(x.body))+'</div></div>';
+  });
+  k+='</div>';
+  k+='<details class="concl"><summary>'+s('note.title')+'</summary><div class="body">'+esc(t(RD.source_note))+'</div></details>';
+  k+='</section>';
+  return k;
+}
+
+function renderDescription(){
+  var h='<section class="section hidden"><h2><span class="kicker">'+s('s.description.k')+'</span>'+s('s.description.t')+'</h2>';
+  h+='<div class="grid c2-1"><div><div class="panel-title">'+s('p.fleet.title')+'</div><div class="panel-sub">'+s('p.fleet.sub')+'</div><div id="chart-fleet-bar" class="chart tall"></div></div>'
+    +'<div><div class="panel-title">'+s('t.vehicle')+' · '+s('t.energy')+'</div><div class="tbl-wrap" id="fleet-table"></div></div></div>';
+  h+='<div class="grid c2" style="margin-top:18px">'
+    +'<div><div class="panel-title">'+s('p.size.title')+'</div><div class="panel-sub">'+s('p.size.sub')+'</div><div id="chart-size" class="chart"></div></div>'
+    +'<div><div class="panel-title">'+s('p.flow.title')+'</div><div class="panel-sub">'+s('p.flow.sub')+'</div><div id="chart-flow" class="chart"></div></div>'
+    +'</div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.rhythm.title')+'</div><div class="panel-sub">'+s('p.rhythm.sub')+'</div><div id="chart-rhythm" class="chart"></div></div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.qc.title')+'</div><div class="panel-sub">'+s('p.qc.sub')+'</div><div id="chart-qc" class="chart"></div></div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.yard.title')+'</div><div class="panel-sub">'+s('p.yard.sub')+'</div><div id="chart-yard" class="chart"></div></div>';
+  h+='<div style="margin-top:20px"><div class="panel-title">'+s('p.map.title')+'</div><div class="panel-sub">'+s('p.map.sub')+'</div>'
+    +'<div class="map-wrap"><canvas id="map-canvas"></canvas><div class="map-legend" id="map-legend"></div>'
+    +'<div id="map-zoom"><button id="map-zin" title="+">+</button><button id="map-zout" title="-">&#8722;</button><button id="map-zfit" title="reset">&#9974;</button></div></div>'
+    +'<div class="map-controls"><button id="map-play">'+s('g.play')+'</button><button id="map-reset">'+s('g.reset')+'</button>'
+    +'<span id="map-time">00:00:00</span><input id="map-slider" type="range" min="0" max="86400" step="10" value="0">'
+    +'<span id="map-speedbtns"></span></div></div>';
+  h+='</section>';
+  return h;
+}
+
+function renderDiagnosis(){
+  var h='<section class="section hidden"><h2><span class="kicker">'+s('s.diagnosis.k')+'</span>'+s('s.diagnosis.t')+'</h2>';
+  h+='<div class="grid c2">'
+    +'<div><div class="panel-title">'+s('p.cycle.title')+'</div><div class="panel-sub">'+s('p.cycle.sub')+'</div><div id="chart-cycle" class="chart"></div></div>'
+    +'<div><div class="panel-title">'+s('p.stage.title')+'</div><div class="panel-sub">'+s('p.stage.sub')+'</div><div id="chart-stage" class="chart"></div></div>'
+    +'</div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.active.title')+'</div><div class="panel-sub">'+s('p.active.sub')+'</div><div id="chart-active" class="chart"></div></div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.seg.title')+'</div><div class="panel-sub">'+s('p.seg.sub')+'</div><div id="chart-seg" class="chart"></div></div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.park.title')+'</div><div class="panel-sub">'+s('p.park.sub')+'</div><div id="chart-park" class="chart"></div></div>';
+  h+='<div class="grid" style="margin-top:18px"><div><div class="panel-title">'+s('p.energy.title')+'</div><div class="panel-sub">'+s('p.energy.sub')+'</div><div id="chart-energy" class="chart"></div></div></div>';
+  h+='</section>';
+  return h;
+}
+
+function renderFocus(){
+  var h='<section class="section hidden"><h2><span class="kicker">'+s('s.focus.k')+'</span>'+s('s.focus.t')+'</h2>';
+  h+='<div class="grid c2">'
+    +'<div><div class="panel-title">'+s('p.error.title')+'</div><div class="panel-sub">'+s('p.error.sub')+'</div><div id="chart-error" class="chart"></div></div>'
+    +'<div><div class="panel-title">'+s('p.interv.title')+'</div><div class="panel-sub">'+s('p.interv.sub')+'</div><div id="chart-interv" class="chart"></div></div>'
+    +'</div>';
+  h+='<div style="margin-top:18px"><div class="panel-title">'+s('p.slow.title')+'</div><div class="panel-sub">'+s('p.slow.sub')+'</div><div class="tbl-wrap" id="slow-table"></div></div>';
+  h+='<div class="grid c2" style="margin-top:18px">'
+    +'<div><div class="panel-title">'+s('t.code')+' · '+s('t.samples')+'</div><div class="tbl-wrap" id="err-table"></div></div>'
+    +'<div><div class="panel-title">'+s('t.vehicle')+' · SOC / '+s('t.charge')+'</div><div class="tbl-wrap" id="chg-table"></div></div>'
+    +'</div>';
+  h+='<details class="concl" open><summary>'+s('act.title')+'</summary><div class="body" id="act-body"></div></details>';
+  h+='</section>';
+  return h;
+}
+
+/* ===================== nav ===================== */
+function renderNav(){
+  var layers=[['conclusion','nav.conclusion'],['description','nav.description'],['diagnosis','nav.diagnosis'],['focus','nav.focus']];
+  var nav=document.getElementById('layer-nav'); nav.innerHTML='';
+  layers.forEach(function(l,i){
+    var b=document.createElement('button');
+    b.textContent=s(l[1]); b.dataset.idx=i; if(i===0)b.classList.add('active');
+    b.onclick=function(){
+      nav.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      var secs=document.querySelectorAll('#sections > section');
+      secs.forEach(function(sec,j){sec.classList.toggle('hidden', j!==i);});
+      Object.keys(CHARTS).forEach(function(k){try{CHARTS[k].resize()}catch(e){}});
+      if(mapCtx) resizeMap();
+      window.scrollTo({top:0,behavior:'smooth'});
+    };
+    nav.appendChild(b);
+  });
+}
+
+/* ===================== tables ===================== */
+function fleetTable(){
+  var f=RD.fleet;
+  var h='<table class="data"><thead><tr><th>'+s('t.vehicle')+'</th><th class="num">'+s('t.boxes')+'</th><th class="num">'+s('t.mileage')+'</th><th class="num">'+s('t.energy')+'</th><th class="num">'+s('t.power')+'</th><th class="num">'+s('t.motor')+'</th><th class="num">'+s('t.epb')+'</th><th class="num">'+s('t.epk')+'</th><th class="num">'+s('t.moving')+'</th></tr></thead><tbody>';
+  f.forEach(function(x){
+    var inact=!x.active;
+    h+='<tr'+(inact?' class="mut"':'')+'><td>'+x.vehicle+(inact?' <span class="badge">'+(LANG==='en'?'idle':'未出车')+'</span>':'')+'</td>'
+      +'<td class="num">'+n0(x.boxes)+'</td><td class="num">'+n0(x.mileage_km)+'</td><td class="num">'+n1(x.energy_kwh)+'</td>'
+      +'<td class="num">'+n1(x.power_hour)+'</td><td class="num">'+n1(x.motor_hour)+'</td>'
+      +'<td class="num">'+n1(x.energy_per_box)+'</td><td class="num">'+n1(x.energy_per_km)+'</td><td class="num">'+n1(x.moving_min)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('fleet-table').innerHTML=h;
+}
+
+function errTable(){
+  var e=RD.errors.top_sample||[], ev={}, cv=RD.errors.code_veh||{}, vehs=RD.errors.vehicles||[];
+  RD.errors.top_event.forEach(function(x){ev[x[0]]=x[1]});
+  var h='<table class="data"><thead><tr><th>'+s('t.code')+'</th>';
+  vehs.forEach(function(v){h+='<th class="num">'+esc(v)+'</th>';});
+  h+='<th class="num">'+s('t.events')+'</th><th class="num">'+s('t.samples')+'</th></tr></thead><tbody>';
+  e.forEach(function(x){
+    h+='<tr><td>'+esc(x[0])+'</td>';
+    vehs.forEach(function(v){var n=(cv[x[0]]||{})[v];h+='<td class="num">'+(n?n0(n):'<span class="mut">—</span>')+'</td>';});
+    h+='<td class="num">'+(ev[x[0]]!==undefined?ev[x[0]]:'—')+'</td><td class="num">'+n0(x[1])+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('err-table').innerHTML=h;
+}
+
+function chgTable(){
+  var h='<table class="data"><thead><tr><th>'+s('t.vehicle')+'</th><th class="num">'+s('t.charge')+'</th><th class="num">SOC min</th><th class="num">SOC max</th><th class="num">SOC avg</th></tr></thead><tbody>';
+  Object.keys(RD.charging).forEach(function(v){
+    var c=RD.charging[v];
+    h+='<tr><td>'+v+'</td><td class="num">'+(c.charge_times||c.starts)+'</td><td class="num">'+n1(c.soc_min)+'</td><td class="num">'+n1(c.soc_max)+'</td><td class="num">'+n1(c.soc_mean)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('chg-table').innerHTML=h;
+}
+
+function taskTableHTML(tt){
+  var FT={'45':'40','22':'20','20':'20'};
+  function szName(k){var g=FT[k];return g?(LANG==='en'?g+' ft':g+' 英尺'):(LANG==='en'?'size '+k:'码 '+k);}
+  var h='<table class="data"><thead><tr><th class="num">'+s('t.rank')+'</th><th class="num">'+s('t.dur')+'</th><th>'+s('t.vehicle')+'</th><th>'+s('t.qc')+'</th><th>'+s('t.bay')+'</th><th>'+s('t.dir')+'</th><th>'+s('t.size')+'</th><th class="num">'+s('t.start')+'</th></tr></thead><tbody>';
+  tt.forEach(function(x,i){
+    h+='<tr><td class="num">'+(i+1)+'</td><td class="num"><b>'+n1(x.dur)+'</b></td><td>'+esc(x.vehicle)+'</td><td>'+esc(x.qc?qcName(x.qc):'—')+'</td>'
+      +'<td>'+esc(x.bay||'—')+'</td><td>'+esc(x.dir||'—')+'</td><td>'+szName(x.size)+'</td><td class="num">'+esc(x.start||'—')+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+
+function slowTable(){
+  var M=RD.movement||{}, tt=M.slow_boxes||[], sm=M.slow_summary||{};
+  var el=document.getElementById('slow-table');
+  if(!el)return;
+  var chips=[];
+  function kv(obj,fmt){return Object.keys(obj).map(function(k){return fmt(k)+' ×'+obj[k];}).join(' · ');}
+  chips.push(['t.hits', String(sm.n||0)+' / '+(RD.movement.total||0)+' ('+(sm.pct||0)+'%)']);
+  if(sm.dir) chips.push(['c.dir', kv(sm.dir,function(k){return k;})]);
+  if(sm.qc) chips.push(['c.qc', kv(sm.qc,function(k){return qcName(k);})]);
+  if(sm.vehicle) chips.push(['t.vehicle2', kv(sm.vehicle,function(k){return k;})]);
+  el.innerHTML=taskTableHTML(tt)+'<div class="common-strip">'+chips.map(function(c){return '<div class="common-chip"><span>'+s(c[0])+'</span>'+c[1]+'</div>';}).join('')+'</div>';
+}
+
+/* ===================== charts render ===================== */
+function renderCharts(){
+  var M=RD.movement, VEHS=RD.fleet.map(function(x){return x.vehicle});
+  var legend={top:0,textStyle:{fontSize:11,color:'#6B6661'}};
+
+  // fleet bar + line
+  var c=mk('chart-fleet-bar');
+  if(c) c.setOption({legend:legend,grid:{left:52,right:52,top:32,bottom:26},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'category',data:VEHS}),
+    yAxis:[Object.assign(axisBase(),{type:'value',name:s('t.boxes')}),Object.assign(axisBase(),{type:'value',name:'km',splitLine:{show:false}})],
+    series:[
+      {name:s('t.boxes'),type:'bar',data:RD.fleet.map(function(x){return x.boxes}),itemStyle:{color:'#7B9E89',borderRadius:[3,3,0,0]},barWidth:'46%'},
+      {name:s('t.mileage'),type:'line',yAxisIndex:1,data:RD.fleet.map(function(x){return x.mileage_km}),itemStyle:{color:'#C77764'},lineStyle:{width:2.5},symbolSize:7}
+    ]});
+
+  // size donut  (码 45→40英尺; 22/20→20英尺, 同尺码合并)
+  var c2=mk('chart-size');
+  if(c2){var FT={'45':'40','22':'20','20':'20'};
+    var gOrder=[],gSum={};
+    Object.keys(M.size_dist).forEach(function(kk){
+      var g=FT[kk]||('码 '+kk);
+      if(gOrder.indexOf(g)<0){gOrder.push(g);gSum[g]=0;}
+      gSum[g]+=M.size_dist[kk];
+    });
+    var sd=gOrder.map(function(g){
+      return {name:/^\d+$/.test(g)?(LANG==='en'?g+' ft':g+' 英尺'):g,value:gSum[g]};
+    });
+    c2.setOption({legend:legend,tooltip:{trigger:'item'},color:['#4A6E5C','#D4A857','#C77764'],
+      series:[{type:'pie',radius:['42%','68%'],center:['50%','55%'],data:sd,label:{fontSize:11,formatter:'{b}  {d}%'}}]});}
+
+  // flow bar
+  var c3=mk('chart-flow');
+  if(c3){var dirs=Object.keys(M.dir_dist);
+    c3.setOption({legend:legend,grid:{left:46,right:16,top:32,bottom:26},tooltip:{trigger:'axis'},
+      xAxis:Object.assign(axisBase(),{type:'category',data:dirs}),
+      yAxis:Object.assign(axisBase(),{type:'value'}),
+      series:[{type:'bar',data:dirs.map(function(d){return M.dir_dist[d]}),barWidth:'42%',itemStyle:{color:'#5B7C99',borderRadius:[3,3,0,0]},label:{show:true,position:'top',fontSize:11,color:'#4A6E5C',fontWeight:600}}]});}
+
+  // rhythm bar + active line
+  var hrs=[];for(var i=0;i<24;i++)hrs.push(('0'+i).slice(-2));
+  var c4=mk('chart-rhythm');
+  if(c4) c4.setOption({legend:legend,grid:{left:44,right:44,top:32,bottom:26},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'category',data:hrs,axisLabel:{color:'#6B6661',fontSize:11,interval:2}}),
+    yAxis:[Object.assign(axisBase(),{type:'value',name:s('x.count')}),Object.assign(axisBase(),{type:'value',name:LANG==='en'?'units':'台',splitLine:{show:false}})],
+    series:[
+      {name:s('x.count'),type:'bar',data:M.by_hour,itemStyle:{color:'#D4A857',borderRadius:[2,2,0,0]}},
+      {name:LANG==='en'?'active units':'活跃车辆',type:'line',yAxisIndex:1,data:RD.hourly_active.active_vehicles,itemStyle:{color:'#4A6E5C'},lineStyle:{width:2},symbolSize:5,smooth:true}
+    ]});
+
+  // cycle grouped bar
+  var c5=mk('chart-cycle');
+  if(c5){var keys=['overall','VSDS','VSLD'];
+    c5.setOption({legend:legend,tooltip:{trigger:'axis'},grid:{left:52,right:20,top:32,bottom:26},
+      xAxis:Object.assign(axisBase(),{type:'category',data:keys.map(function(kk){return kk==='overall'?(LANG==='en'?'All':'整体'):kk})}),
+      yAxis:Object.assign(axisBase(),{type:'value',name:'min'}),
+      series:[
+        {name:'P50',type:'bar',data:keys.map(function(kk){return M.cycle[kk].p50}),itemStyle:{color:'#7B9E89',borderRadius:[3,3,0,0]},barGap:'8%',label:{show:true,position:'top',fontSize:10,color:'#4A6E5C'}},
+        {name:'P90',type:'bar',data:keys.map(function(kk){return M.cycle[kk].p90}),itemStyle:{color:'#C77764',borderRadius:[3,3,0,0]},label:{show:true,position:'top',fontSize:10,color:'#9B5040'}}
+      ]});}
+
+  // stage pie
+  var c6=mk('chart-stage');
+  if(c6){var st=RD.stage_time_hours;var sd2=Object.keys(st).map(function(kk){return{name:kk,value:st[kk]}});
+    c6.setOption({legend:legend,tooltip:{trigger:'item',formatter:function(p){return p.name+': '+p.value+' h ('+p.percent+'%)'}},
+      color:['#4A6E5C','#A4BFB4','#D4A857','#C77764'],
+      series:[{type:'pie',radius:['40%','66%'],center:['48%','56%'],data:sd2,label:{fontSize:10,formatter:'{d}%'}}]});}
+
+  // speed & mileage by physical segment
+  var cseg=mk('chart-seg');
+  if(cseg){var SG=RD.stage_seg||[];
+    cseg.setOption({legend:legend,grid:{left:58,right:58,top:34,bottom:30},tooltip:{trigger:'axis'},
+      xAxis:Object.assign(axisBase(),{type:'category',data:SG.map(function(x){return x.stage})}),
+      yAxis:[Object.assign(axisBase(),{type:'value',name:LANG==='en'?'km':'里程(km)'}),
+             Object.assign(axisBase(),{type:'value',name:LANG==='en'?'m/s':'车速(m/s)',splitLine:{show:false}})],
+      series:[
+        {name:LANG==='en'?'Mileage':'行驶里程',type:'bar',barWidth:'46%',data:SG.map(function(x){return x.km}),itemStyle:{color:'#7B9E89',borderRadius:[3,3,0,0]},label:{show:true,position:'top',fontSize:10,color:'#6B6661'}},
+        {name:LANG==='en'?'Avg speed':'平均车速',type:'line',yAxisIndex:1,smooth:true,symbolSize:7,data:SG.map(function(x){return x.speed}),itemStyle:{color:'#D4A857'},lineStyle:{color:'#D4A857',width:2.4}}
+      ]});}
+
+  // parking hotspots (hour x area, stacked)
+  var cpk=mk('chart-park');
+  if(cpk&&RD.parking){var PK=RD.parking;
+    cpk.setOption({legend:legend,color:['#4A6E5C','#D4A857','#B9B2A8'],grid:{left:52,right:16,top:34,bottom:28},tooltip:{trigger:'axis',valueFormatter:function(x){return x+(LANG==='en'?' min':' 分钟')}},
+      xAxis:Object.assign(axisBase(),{type:'category',data:hrs,axisLabel:{color:'#6B6661',fontSize:10,interval:1}}),
+      yAxis:Object.assign(axisBase(),{type:'value',name:LANG==='en'?'min':'分钟'}),
+      series:PK.zones.map(function(z){return{name:s('z.'+z),type:'bar',stack:'pk',barWidth:'64%',data:PK.by_zone[z]}})});}
+
+  // activity
+  var c9=mk('chart-active');
+  if(c9) c9.setOption({legend:legend,grid:{left:44,right:50,top:32,bottom:26},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'category',data:hrs,axisLabel:{color:'#6B6661',fontSize:11,interval:2}}),
+    yAxis:[Object.assign(axisBase(),{type:'value',name:LANG==='en'?'units':'台'}),Object.assign(axisBase(),{type:'value',name:'min',splitLine:{show:false}})],
+    series:[
+      {name:LANG==='en'?'active units':'活跃车辆',type:'bar',data:RD.hourly_active.active_vehicles,itemStyle:{color:'#7B9E89',borderRadius:[2,2,0,0]}},
+      {name:LANG==='en'?'moving minutes':'移动时长',type:'line',yAxisIndex:1,data:RD.hourly_active.moving_min,itemStyle:{color:'#C77764'},lineStyle:{width:2.4},symbolSize:5,smooth:true}
+    ]});
+
+  // energy
+  var c10=mk('chart-energy');
+  if(c10) c10.setOption({legend:legend,grid:{left:52,right:52,top:32,bottom:26},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'category',data:VEHS}),
+    yAxis:[Object.assign(axisBase(),{type:'value',name:'kWh/'+(LANG==='en'?'box':'箱')}),Object.assign(axisBase(),{type:'value',name:'kWh/km',splitLine:{show:false}})],
+    series:[
+      {name:'kWh/'+(LANG==='en'?'box':'箱'),type:'bar',data:RD.fleet.map(function(x){return x.energy_per_box}),itemStyle:{color:'#D4A857',borderRadius:[3,3,0,0]},barWidth:'46%'},
+      {name:'kWh/km',type:'line',yAxisIndex:1,data:RD.fleet.map(function(x){return x.energy_per_km}),itemStyle:{color:'#5B7C99'},lineStyle:{width:2.5},symbolSize:7}
+    ]});
+
+  // errors
+  var te=RD.errors.top_event.slice(0,10).reverse();
+  var c11=mk('chart-error');
+  if(c11) c11.setOption({grid:{left:78,right:34,top:16,bottom:20},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'value'}),
+    yAxis:Object.assign(axisBase(),{type:'category',data:te.map(function(x){return x[0]}),axisLabel:{color:'#6B6661',fontSize:10}}),
+    series:[{type:'bar',data:te.map(function(x){return x[1]}),itemStyle:{color:'#C77764',borderRadius:[0,3,3,0]},label:{show:true,position:'right',fontSize:10,color:'#9B5040'}}]});
+
+  // interventions
+  var ops=Object.keys(RD.interventions.by_op);var vals=ops.map(function(o){return RD.interventions.by_op[o]});
+  var c12=mk('chart-interv');
+  if(c12){var opMax=0;ops.forEach(function(o){if(o.length>opMax)opMax=o.length});
+    var opLeft=Math.max(150,Math.min(232,opMax*5.8+14));
+    c12.setOption({grid:{left:opLeft,right:30,top:12,bottom:20},tooltip:{trigger:'axis'},
+    xAxis:Object.assign(axisBase(),{type:'value'}),
+    yAxis:Object.assign(axisBase(),{type:'category',data:ops.slice().reverse(),axisLabel:{color:'#6B6661',fontSize:10}}),
+    series:[{type:'bar',data:vals.slice().reverse(),itemStyle:{color:'#8E7BA8',borderRadius:[0,3,3,0]},label:{show:true,position:'right',fontSize:10,color:'#6B6661'}}]});}
+
+  // quay-crane allocation (hourly, stacked)
+  var cq=mk('chart-qc');
+  if(cq){var QH=RD.movement.qc_hourly||{cranes:[],by_crane:{}};
+    cq.setOption({legend:legend,color:['#4A6E5C','#D4A857','#C77764','#8E7BA8','#5B7C99'],grid:{left:44,right:16,top:38,bottom:26},tooltip:{trigger:'axis'},
+      xAxis:Object.assign(axisBase(),{type:'category',data:hrs,axisLabel:{color:'#6B6661',fontSize:10,interval:1}}),
+      yAxis:Object.assign(axisBase(),{type:'value',name:s('x.count')}),
+      series:QH.cranes.map(function(q){return{name:qcName(q),type:'bar',stack:'qc',barWidth:'62%',data:QH.by_crane[q]}})});}
+
+  // yard allocation (bay x hour heatmap)
+  var cy=mk('chart-yard');
+  if(cy){var YH=RD.movement.yard_hourly||{bays:[],by_bay:{}};
+    var yEl=document.getElementById('chart-yard');
+    if(yEl){yEl.style.height=Math.max(360,YH.bays.length*20+96)+'px';cy.resize();}
+    var hd=[],hmax=0;
+    YH.bays.forEach(function(b,bi){var arr=YH.by_bay[b]||[];for(var hi=0;hi<24;hi++){var v=arr[hi]||0;hd.push([hi,bi,v]);if(v>hmax)hmax=v;}});
+    cy.setOption({grid:{left:60,right:16,top:14,bottom:54},tooltip:{position:'top',formatter:function(p){return (LANG==='en'?'Yard-bay ':'堆场-贝位 ')+YH.bays[p.value[1]]+' · '+hrs[p.value[0]]+':00 → '+p.value[2]+(LANG==='en'?' moves':' 箱');}},
+      xAxis:Object.assign(axisBase(),{type:'category',data:hrs,axisLabel:{color:'#6B6661',fontSize:9,interval:1}}),
+      yAxis:Object.assign(axisBase(),{type:'category',data:YH.bays,axisLabel:{color:'#6B6661',fontSize:10}}),
+      visualMap:{min:0,max:hmax||1,orient:'horizontal',left:'center',bottom:4,itemWidth:12,itemHeight:90,textStyle:{fontSize:10,color:'#6B6661'},inRange:{color:['#eef3ec','#A4BFB4','#4A6E5C']}},
+      series:[{type:'heatmap',data:hd,itemStyle:{borderColor:'#fff',borderWidth:1}}]});}
+}
+
+/* ===================== actions ===================== */
+function renderActions(){
+  var f=RD.fleet, M=RD.movement;
+  var arr=[];
+  var idle=f.filter(function(x){return !x.active});
+  if(idle.length) arr.push(LANG==='en'
+    ? 'Unit '+idle.map(function(x){return x.vehicle}).join('/')+' reported no telemetry today — confirm it was planned off-duty or investigate availability.'
+    : '车辆 '+idle.map(function(x){return x.vehicle}).join('/')+' 当日无遥测数据，请确认是计划停驶还是可用率异常。');
+  var active=f.filter(function(x){return x.active}).sort(function(a,b){return a.boxes-b.boxes});
+  if(active.length>1){
+    arr.push(LANG==='en'
+      ? 'Reflow the lowest-throughput unit ('+active[0].vehicle+', '+active[0].boxes+' moves) — check its waiting/alignment share against the fleet median.'
+      : '复核作业量最低车辆('+active[0].vehicle+'，'+active[0].boxes+' 箱)的等待与对齐阶段占比，向车队中位数对齐。');
+  }
+  var peakH=('0'+RD.movement.by_hour.indexOf(Math.max.apply(null,RD.movement.by_hour))).slice(-2);
+  arr.push(LANG==='en'
+    ? 'Schedule battery swaps and maintenance outside the peak hour ('+peakH+':00).'
+    : '将换电与维护窗口调度到作业高峰('+peakH+':00)之外。');
+  arr.push(LANG==='en'
+    ? 'Top fault '+RD.errors.top_event[0][0]+' fired '+RD.errors.top_event[0][1]+'× — add to the next perception/calibration review with the '+RD.interventions.total+' interventions.'
+    : '最高频故障码 '+RD.errors.top_event[0][0]+' 触发 '+RD.errors.top_event[0][1]+' 次，连同 '+RD.interventions.total+' 次人工介入，纳入下一轮感知标定复核。');
+  arr.push(LANG==='en'
+    ? 'VSLD median ('+M.cycle.VSLD.p50+' min) is faster than VSDS ('+M.cycle.VSDS.p50+' min) — quantify the gap in quay-crane waiting time.'
+    : 'VSLD 中位耗时('+M.cycle.VSLD.p50+' min)快于 VSDS('+M.cycle.VSDS.p50+' min)，建议量化岸桥等待造成的差异。');
+  var h='<ul>';arr.forEach(function(a){h+='<li>'+esc(a)+'</li>'});h+='</ul>';
+  document.getElementById('act-body').innerHTML=h;
+}
+
+/* ===================== map ===================== */
+var mapCtx=null, baseCv=null, trailCv=null, heatCv=null, mapHeat=true, mapT=0, mapPlaying=false, mapSpeed=10, lastTs=0;
+var mapZoom=1, mapPanX=0, mapPanY=0, mapDrag=false, lastX=0, lastY=0;
+var mapSel={}, mapBounds=null, mapDpr=Math.min(window.devicePixelRatio||1,2);
+function fmtT(sec){var hh=Math.floor(sec/3600),mm=Math.floor(sec%3600/60),ss=Math.floor(sec%60);return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2)+':'+('0'+ss).slice(-2);}
+function bsearch(pts,T){var lo=0,hi=pts.length-1;while(lo<hi){var mid=(lo+hi+1)>>1;if(pts[mid][0]<=T)lo=mid;else hi=mid-1;}return lo;}
+function baseScale(){
+  var cv=document.getElementById('map-canvas');var W=cv.clientWidth,H=cv.clientHeight;
+  var b=mapBounds,pad=36;
+  return Math.min((W-2*pad)/(b.maxx-b.minx||1),(H-2*pad)/(b.maxy-b.miny||1));
+}
+function mapTransform(){
+  var cv=document.getElementById('map-canvas');var W=cv.clientWidth,H=cv.clientHeight;
+  var b=mapBounds;var sc=baseScale()*mapZoom;
+  var ox=(W-(b.maxx-b.minx)*sc)/2+mapPanX, oy=(H-(b.maxy-b.miny)*sc)/2+mapPanY;
+  return {sc:sc,ox:ox,oy:oy,X:function(x){return ox+(x-b.minx)*sc},Y:function(y){return oy+(b.maxy-y)*sc}};
+}
+function redrawMap(){drawHeat();drawBase();drawTrail(0,mapT,true);paintFrame();}
+function clampPan(){
+  var cv=document.getElementById('map-canvas');var W=cv.clientWidth,H=cv.clientHeight;
+  var b=mapBounds,sc=baseScale()*mapZoom;
+  var lx=Math.max(0,(b.maxx-b.minx)*sc/2-W/2+40), ly=Math.max(0,(b.maxy-b.miny)*sc/2-H/2+40);
+  mapPanX=Math.max(-lx,Math.min(lx,mapPanX));mapPanY=Math.max(-ly,Math.min(ly,mapPanY));
+}
+function zoomAt(mx,my,factor){
+  if(!mapBounds)return;
+  var cv=document.getElementById('map-canvas');var W=cv.clientWidth,H=cv.clientHeight,b=mapBounds;
+  var nz=Math.max(1,Math.min(20,mapZoom*factor));if(nz===mapZoom)return;
+  var o0=baseScale()*mapZoom;
+  var ox0=(W-(b.maxx-b.minx)*o0)/2+mapPanX, oy0=(H-(b.maxy-b.miny)*o0)/2+mapPanY;
+  var wx=b.minx+(mx-ox0)/o0, wy=b.maxy-(my-oy0)/o0;
+  mapZoom=nz;
+  var ns=baseScale()*nz;
+  var oxT=mx-(wx-b.minx)*ns, oyT=my-(b.maxy-wy)*ns;
+  mapPanX=oxT-(W-(b.maxx-b.minx)*ns)/2; mapPanY=oyT-(H-(b.maxy-b.miny)*ns)/2;
+  if(mapZoom<=1.001){mapZoom=1;mapPanX=0;mapPanY=0;}
+  clampPan();redrawMap();
+}
+function resizeMap(){
+  if(!RD.map)return; var cv=document.getElementById('map-canvas'); if(!cv)return;
+  var W=cv.clientWidth,H=cv.clientHeight;
+  if(W<=0||H<=0)return;
+  cv.width=W*mapDpr;cv.height=H*mapDpr;
+  baseCv.width=W*mapDpr;baseCv.height=H*mapDpr;trailCv.width=W*mapDpr;trailCv.height=H*mapDpr;heatCv.width=W*mapDpr;heatCv.height=H*mapDpr;
+  mapCtx.setTransform(mapDpr,0,0,mapDpr,0,0);
+  baseCv.getContext('2d').setTransform(mapDpr,0,0,mapDpr,0,0);
+  trailCv.getContext('2d').setTransform(mapDpr,0,0,mapDpr,0,0);
+  clampPan();redrawMap();
+}
+function drawBase(){
+  if(!baseCv)return;var ctx=baseCv.getContext('2d');ctx.clearRect(0,0,baseCv.width,baseCv.height);
+  var T=mapTransform();
+  Object.keys(RD.map.vehicles).forEach(function(v){
+    if(!mapSel[v])return;var pts=RD.map.vehicles[v];ctx.beginPath();
+    for(var i=0;i<pts.length;i++){var X=T.X(pts[i][1]),Y=T.Y(pts[i][2]);if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.strokeStyle=hexA(vehColor(v),0.16);ctx.lineWidth=1;ctx.stroke();
+  });
+}
+function drawTrail(t0,t1,full){
+  if(!trailCv)return;var ctx=trailCv.getContext('2d');
+  if(full)ctx.clearRect(0,0,trailCv.width,trailCv.height);
+  var T=mapTransform();
+  Object.keys(RD.map.vehicles).forEach(function(v){
+    if(!mapSel[v])return;var pts=RD.map.vehicles[v];
+    var i0=bsearch(pts,t0-1e-6);
+    ctx.beginPath();var started=false;
+    for(var i=i0;i<pts.length;i++){
+      if(pts[i][0]>t1)break;
+      var X=T.X(pts[i][1]),Y=T.Y(pts[i][2]);
+      if(!started){ctx.moveTo(X,Y);started=true;}else ctx.lineTo(X,Y);
+    }
+    if(started){ctx.strokeStyle=hexA(vehColor(v),0.95);ctx.lineWidth=2.2;ctx.lineJoin='round';ctx.stroke();}
+  });
+}
+function heatBand(v){
+  if(v<=1)return [78,158,92,170];      // 0-1  绿
+  if(v<11)return [224,146,47,195];     // 1-11 橙
+  return [199,71,47,215];              // >=11 红
+}
+function drawHeat(){
+  if(!heatCv)return;
+  var cv=document.getElementById('map-canvas');if(!cv)return;
+  var W=cv.clientWidth,H=cv.clientHeight,ctx=heatCv.getContext('2d');
+  ctx.setTransform(mapDpr,0,0,mapDpr,0,0);ctx.clearRect(0,0,W,H);
+  if(!mapHeat||!RD.map||W<=0||H<=0)return;
+  var T=mapTransform(),cell=6,gw=Math.ceil(W/cell),gh=Math.ceil(H/cell);
+  if(gw<1||gh<1)return;
+  var grid=new Float32Array(gw*gh),max=0;
+  Object.keys(RD.map.vehicles).forEach(function(v){
+    if(!mapSel[v])return;var pts=RD.map.vehicles[v];
+    for(var i=0;i<pts.length;i++){
+      var gx=(T.X(pts[i][1])/cell)|0,gy=(T.Y(pts[i][2])/cell)|0;
+      if(gx<0||gy<0||gx>=gw||gy>=gh)continue;
+      var n=++grid[gy*gw+gx];if(n>max)max=n;
+    }
+  });
+  if(!max)return;
+  var small=document.createElement('canvas');small.width=gw;small.height=gh;
+  var sctx=small.getContext('2d'),img=sctx.createImageData(gw,gh),d=img.data;
+  for(var k=0;k<grid.length;k++){
+    var gv=grid[k];if(gv<=0)continue;
+    var c=heatBand(gv);
+    d[k*4]=c[0];d[k*4+1]=c[1];d[k*4+2]=c[2];d[k*4+3]=c[3];
+  }
+  sctx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(small,0,0,W,H);
+}
+function paintFrame(){
+  if(!mapCtx)return;var cv=document.getElementById('map-canvas');
+  if(!baseCv||!baseCv.width||!baseCv.height||!trailCv||!trailCv.width||!trailCv.height)return;
+  mapCtx.clearRect(0,0,cv.width,cv.height);
+  if(heatCv&&heatCv.width)mapCtx.drawImage(heatCv,0,0,cv.clientWidth,cv.clientHeight);
+  mapCtx.drawImage(baseCv,0,0,cv.clientWidth,cv.clientHeight);
+  mapCtx.drawImage(trailCv,0,0,cv.clientWidth,cv.clientHeight);
+  var T=mapTransform();
+  Object.keys(RD.map.vehicles).forEach(function(v){
+    if(!mapSel[v])return;var pts=RD.map.vehicles[v];var i=bsearch(pts,mapT);if(i<0||!pts[i])return;
+    var x=T.X(pts[i][1]),y=T.Y(pts[i][2]);
+    mapCtx.beginPath();mapCtx.arc(x,y,5.5,0,6.2832);mapCtx.fillStyle=vehColor(v);mapCtx.fill();
+    mapCtx.lineWidth=1.6;mapCtx.strokeStyle='rgba(255,255,255,.9)';mapCtx.stroke();
+    mapCtx.fillStyle='rgba(255,255,255,.96)';mapCtx.font='600 11px "Microsoft YaHei",sans-serif';
+    mapCtx.fillText(v+((pts[i][3]>0.5)?('  '+pts[i][3].toFixed(1)+'m/s'):''), x+9, y-7);
+  });
+}
+function hexA(hex,a){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';}
+function vehColor(v){var idx=RD.meta.fleet.indexOf(v);return COLORS[(idx<0?0:idx)%COLORS.length];}
+function mapLegend(){
+  var el=document.getElementById('map-legend');el.innerHTML='';
+  RD.map.vehicles=RD.map.vehicles||{};
+  var hl=document.createElement('label');
+  hl.style.cssText='border-bottom:1px solid var(--grid);margin-bottom:5px;padding-bottom:6px;font-weight:600';
+  hl.innerHTML='<input type="checkbox" '+(mapHeat?'checked':'')+'><span class="dot" style="width:16px;height:10px;border-radius:2px;background:linear-gradient(90deg,#4E9E5C 0 33.3%,#E0922F 33.3% 66.6%,#C7472F 66.6% 100%)"></span>'+s('g.heat');
+  hl.querySelector('input').onchange=function(e){mapHeat=e.target.checked;drawHeat();paintFrame();};
+  el.appendChild(hl);
+  Object.keys(RD.map.vehicles).forEach(function(v){
+    var lab=document.createElement('label');lab.className=mapSel[v]?'active':'';
+    lab.innerHTML='<input type="checkbox" '+(mapSel[v]?'checked':'')+'><span class="dot" style="background:'+vehColor(v)+'"></span>'+v;
+    lab.querySelector('input').onchange=function(e){mapSel[v]=e.target.checked;lab.className=mapSel[v]?'active':'';drawHeat();drawBase();drawTrail(0,mapT,true);paintFrame();};
+    el.appendChild(lab);
+  });
+}
+function initMap(){
+  if(!RD.map)return;
+  baseCv=document.createElement('canvas');trailCv=document.createElement('canvas');heatCv=document.createElement('canvas');
+  var cv=document.getElementById('map-canvas');mapCtx=cv.getContext('2d');
+  mapBounds=RD.map.bounds;
+  Object.keys(RD.map.vehicles).forEach(function(v){mapSel[v]=true;});
+  mapLegend();
+  // speed buttons
+  var sb=document.getElementById('map-speedbtns');[1,4,10,30,60].forEach(function(sp){
+    var b=document.createElement('button');b.className='speedbtn'+(sp===mapSpeed?' active':'');b.textContent=sp+'x';b.style.marginLeft='4px';
+    b.onclick=function(){mapSpeed=sp;sb.querySelectorAll('button').forEach(function(x){x.classList.remove('active')});b.classList.add('active');};
+    sb.appendChild(b);
+  });
+  document.getElementById('map-play').onclick=function(){mapPlaying=!mapPlaying;this.textContent=mapPlaying?s('g.pause'):s('g.play');if(mapPlaying){lastTs=0;requestAnimationFrame(loop);}};
+  document.getElementById('map-reset').onclick=function(){mapPlaying=false;document.getElementById('map-play').textContent=s('g.play');mapT=0;drawTrail(0,0,true);paintFrame();syncMapUI();};
+  document.getElementById('map-slider').oninput=function(e){mapPlaying=false;document.getElementById('map-play').textContent=s('g.play');mapT=+e.target.value;drawTrail(0,mapT,true);paintFrame();syncMapUI();};
+  // zoom / pan
+  cv.addEventListener('wheel',function(e){e.preventDefault();var r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.2:1/1.2);},{passive:false});
+  cv.addEventListener('mousedown',function(e){if(e.button!==0)return;mapDrag=true;lastX=e.clientX;lastY=e.clientY;cv.classList.add('dragging');});
+  window.addEventListener('mousemove',function(e){if(!mapDrag)return;mapPanX+=e.clientX-lastX;mapPanY+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;clampPan();redrawMap();});
+  window.addEventListener('mouseup',function(){if(!mapDrag)return;mapDrag=false;cv.classList.remove('dragging');});
+  var zin=document.getElementById('map-zin'),zout=document.getElementById('map-zout'),zfit=document.getElementById('map-zfit');
+  if(zin)zin.onclick=function(){zoomAt(cv.clientWidth/2,cv.clientHeight/2,1.3);};
+  if(zout)zout.onclick=function(){zoomAt(cv.clientWidth/2,cv.clientHeight/2,1/1.3);};
+  if(zfit)zfit.onclick=function(){mapZoom=1;mapPanX=0;mapPanY=0;redrawMap();};
+  resizeMap();
+  requestAnimationFrame(function(){resizeMap();});
+  if(window.ResizeObserver){var ro=new ResizeObserver(function(){resizeMap();});ro.observe(cv);}
+  window.addEventListener('resize',function(){Object.keys(CHARTS).forEach(function(k){try{CHARTS[k].resize()}catch(e){}});resizeMap();});
+}
+function syncMapUI(){document.getElementById('map-time').textContent=fmtT(mapT);document.getElementById('map-slider').value=mapT;}
+function loop(ts){
+  if(!mapPlaying)return;if(!lastTs)lastTs=ts;var dtr=(ts-lastTs)/1000;lastTs=ts;
+  var prev=mapT;mapT=Math.min(86400,mapT+dtr*mapSpeed);
+  drawTrail(prev,mapT,false);paintFrame();syncMapUI();
+  if(mapT>=86400){mapPlaying=false;document.getElementById('map-play').textContent=s('g.play');return;}
+  requestAnimationFrame(loop);
+}
+
+/* ===================== upload ===================== */
+function initUpload(){
+  var zone=document.getElementById('drop-zone'),input=document.getElementById('drop-input');
+  zone.innerHTML=s('g.upload.zone');
+  var picked=[];
+  function list(){document.getElementById('drop-list').textContent=picked.map(function(f){return f.name}).join('  ·  ');}
+  function add(fl){for(var i=0;i<fl.length;i++){picked.push(fl[i]);}list();}
+  document.getElementById('upload-toggle').onclick=function(){document.getElementById('drop-modal').classList.add('show');};
+  document.getElementById('drop-cancel').onclick=function(){document.getElementById('drop-modal').classList.remove('show');document.getElementById('drop-msg').textContent='';};
+  zone.onclick=function(){input.click();};
+  input.onchange=function(){add(input.files);};
+  ['dragenter','dragover'].forEach(function(ev){zone.addEventListener(ev,function(e){e.preventDefault();zone.classList.add('hover');});});
+  ['dragleave','drop'].forEach(function(ev){zone.addEventListener(ev,function(e){e.preventDefault();zone.classList.remove('hover');});});
+  zone.addEventListener('drop',function(e){add(e.dataTransfer.files);});
+  document.getElementById('drop-run').onclick=function(){
+    var msg=document.getElementById('drop-msg');
+    if(!picked.length){msg.style.color='#9B5040';msg.textContent=s('g.upload.nofile');return;}
+    if(location.protocol==='file:'){msg.style.color='#9B5040';msg.textContent=LANG==='en'?'Please open via the local service (启动报告.bat).':'请通过本地服务(启动报告.bat)打开本页后再上传。';return;}
+    var fd=new FormData();picked.forEach(function(f){fd.append('files',f,f.name);});
+    msg.style.color='#4A6E5C';msg.textContent=s('g.upload.running');
+    fetch('/api/build',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(j){
+      if(j.ok){msg.textContent=s('g.upload.ok');setTimeout(function(){location.href='/'+encodeURIComponent(j.report);},600);}
+      else{msg.style.color='#9B5040';msg.textContent=s('g.upload.fail')+(j.error||'');}
+    }).catch(function(e){msg.style.color='#9B5040';msg.textContent=s('g.upload.fail')+e;});
+  };
+}
+
+/* ===================== boot ===================== */
+document.getElementById('lang-toggle').onclick=function(){try{localStorage.setItem('hit-lang',LANG==='en'?'zh':'en')}catch(e){}location.reload();};
+(function(){
+  renderHeader();
+  document.getElementById('sections').innerHTML=renderConclusion()+renderDescription()+renderDiagnosis()+renderFocus();
+  renderNav();fleetTable();errTable();chgTable();slowTable();renderActions();renderCharts();initMap();initUpload();
+})();
+</script>
+</body>
+</html>
