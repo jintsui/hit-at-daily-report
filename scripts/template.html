@@ -22,8 +22,8 @@ body{font-family:"Source Sans Pro","Microsoft YaHei","微软雅黑",sans-serif;b
 .report-header .meta{font-size:13px;color:var(--fg-muted);margin-top:6px}
 .report-header .meta strong{color:var(--sage-dark)}
 .src-note{font-size:11px;color:#8a8f8c;margin-top:4px;max-width:760px}
-#lang-toggle,#upload-toggle{flex:0 0 auto;border:1px solid var(--sage-dark);background:var(--bg-card);color:var(--sage-dark);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer;font-weight:600}
-#lang-toggle:hover,#upload-toggle:hover{background:var(--sage-dark);color:#fff}
+#lang-toggle,#upload-toggle,#download-btn{flex:0 0 auto;border:1px solid var(--sage-dark);background:var(--bg-card);color:var(--sage-dark);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer;font-weight:600}
+#lang-toggle:hover,#upload-toggle:hover,#download-btn:hover{background:var(--sage-dark);color:#fff}
 .hdr-actions{display:flex;gap:8px;flex:0 0 auto}
 #drop-modal{position:fixed;inset:0;background:rgba(30,26,22,.5);display:none;align-items:center;justify-content:center;z-index:60}
 #drop-modal.show{display:flex}
@@ -35,7 +35,10 @@ body{font-family:"Source Sans Pro","Microsoft YaHei","微软雅黑",sans-serif;b
 #drop-zone b{color:var(--sage-dark)}
 #drop-list{font-size:12px;margin:10px 0;color:var(--sage-dark);min-height:18px}
 #drop-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
-#drop-actions button{border-radius:4px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--sage-dark)}
+#drop-actions button,#drop-download{border-radius:4px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--sage-dark)}
+#drop-download{background:var(--amber-dark);color:#fff;text-decoration:none;display:inline-block}
+#drop-download:hover{background:var(--amber)}
+#drop-load{background:#fff;color:var(--sage-dark)}
 #drop-run{background:var(--sage-dark);color:#fff}
 #drop-cancel{background:#fff;color:var(--sage-dark)}
 #drop-msg{font-size:12.5px;margin-top:10px}
@@ -138,6 +141,7 @@ details.concl li{margin:3px 0}
   </div>
   <div class="hdr-actions">
     <button id="upload-toggle" data-i18n="g.upload">上传数据</button>
+    <button id="download-btn" data-i18n="g.download">下载报告</button>
     <button id="lang-toggle">EN</button>
   </div>
 </header>
@@ -150,7 +154,7 @@ details.concl li{margin:3px 0}
     <input id="drop-input" type="file" multiple accept=".zip,.xlsx,.csv" class="hidden">
     <div id="drop-list"></div>
     <div id="drop-msg"></div>
-    <div id="drop-actions"><button id="drop-cancel" data-i18n="g.upload.cancel"></button><button id="drop-run" data-i18n="g.upload.run"></button></div>
+    <div id="drop-actions"><a id="drop-download" class="hidden" data-i18n="g.upload.download"></a><button id="drop-load" class="hidden" data-i18n="g.upload.load"></button><button id="drop-cancel" data-i18n="g.upload.cancel"></button><button id="drop-run" data-i18n="g.upload.run"></button></div>
   </div>
 </div>
 
@@ -215,6 +219,7 @@ var I18N = {
   "act.title":["行动建议","Recommended actions"],
   "note.title":["数据口径与说明","Data basis & notes"],
   "g.upload":["上传数据","Upload"],
+  "g.download":["下载报告","Download report"],
   "g.upload.title":["上传数据并重算","Upload data & rebuild"],
   "g.upload.hint":["拖入 ZIP(车辆遥测/能耗/日志 CSV) 与 XLSX(位移数据)，或点击选择；重算将覆盖式更新本报告。需通过本地服务(启动报告.bat)打开。","Drop the ZIP (telemetry/energy/log CSVs) and the XLSX (movement), or click to select. Rebuild overwrites this report. Requires the local service."],
   "g.upload.zone":["拖拽文件到此处，或 <b>点击选择</b>","Drop files here or <b>click to select</b>"],
@@ -222,7 +227,9 @@ var I18N = {
   "g.upload.run":["重算并更新","Rebuild"],
   "g.upload.nofile":["请先选择文件","Please select files first"],
   "g.upload.running":["正在重算，请稍候…","Rebuilding, please wait…"],
-  "g.upload.ok":["重算完成，正在载入新报告…","Rebuild done, loading…"],
+  "g.upload.ok":["重算完成，可下载或载入新报告。","Rebuild done. Download or load the new report."],
+  "g.upload.download":["下载报告","Download report"],
+  "g.upload.load":["载入新报告","Load report"],
   "g.upload.fail":["重算失败：","Rebuild failed: "]
 };
 function s(k){var v=I18N[k];if(!v)return k;return LANG==='en'?v[1]:v[0];}
@@ -761,6 +768,19 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 
+/* ===================== download ===================== */
+function saveHtml(name,html){var u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));var a=document.createElement('a');a.href=u;a.setAttribute('download',name);document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(u);},2000);}
+function initDownload(){
+  document.getElementById('download-btn').onclick=function(){
+    var name=(document.title||'report').replace(/[\\/:*?"<>|]/g,'_')+'.html';
+    if(location.protocol!=='file:'){
+      var a=document.createElement('a');a.href=location.pathname;a.setAttribute('download',name);document.body.appendChild(a);a.click();document.body.removeChild(a);
+    }else{
+      saveHtml(name,'<!DOCTYPE html>\n'+document.documentElement.outerHTML);
+    }
+  };
+}
+
 /* ===================== upload ===================== */
 function initUpload(){
   var zone=document.getElementById('drop-zone'),input=document.getElementById('drop-input');
@@ -769,7 +789,7 @@ function initUpload(){
   function list(){document.getElementById('drop-list').textContent=picked.map(function(f){return f.name}).join('  ·  ');}
   function add(fl){for(var i=0;i<fl.length;i++){picked.push(fl[i]);}list();}
   document.getElementById('upload-toggle').onclick=function(){document.getElementById('drop-modal').classList.add('show');};
-  document.getElementById('drop-cancel').onclick=function(){document.getElementById('drop-modal').classList.remove('show');document.getElementById('drop-msg').textContent='';};
+  document.getElementById('drop-cancel').onclick=function(){document.getElementById('drop-modal').classList.remove('show');document.getElementById('drop-msg').textContent='';document.getElementById('drop-download').classList.add('hidden');document.getElementById('drop-load').classList.add('hidden');};
   zone.onclick=function(){input.click();};
   input.onchange=function(){add(input.files);};
   ['dragenter','dragover'].forEach(function(ev){zone.addEventListener(ev,function(e){e.preventDefault();zone.classList.add('hover');});});
@@ -782,7 +802,14 @@ function initUpload(){
     var fd=new FormData();picked.forEach(function(f){fd.append('files',f,f.name);});
     msg.style.color='#4A6E5C';msg.textContent=s('g.upload.running');
     fetch('/api/build',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(j){
-      if(j.ok){msg.textContent=s('g.upload.ok');setTimeout(function(){location.href='/'+encodeURIComponent(j.report);},600);}
+      if(j.ok){
+        msg.textContent=s('g.upload.ok');
+        var url='/'+encodeURIComponent(j.report);
+        var dl=document.getElementById('drop-download');
+        dl.href=url;dl.setAttribute('download',j.report);dl.classList.remove('hidden');
+        var ld=document.getElementById('drop-load');
+        ld.classList.remove('hidden');ld.onclick=function(){location.href=url;};
+      }
       else{msg.style.color='#9B5040';msg.textContent=s('g.upload.fail')+(j.error||'');}
     }).catch(function(e){msg.style.color='#9B5040';msg.textContent=s('g.upload.fail')+e;});
   };
@@ -793,7 +820,7 @@ document.getElementById('lang-toggle').onclick=function(){try{localStorage.setIt
 (function(){
   renderHeader();
   document.getElementById('sections').innerHTML=renderConclusion()+renderDescription()+renderDiagnosis()+renderFocus();
-  renderNav();fleetTable();errTable();chgTable();slowTable();renderActions();renderCharts();initMap();initUpload();
+  renderNav();fleetTable();errTable();chgTable();slowTable();renderActions();renderCharts();initMap();initDownload();initUpload();
 })();
 </script>
 </body>
