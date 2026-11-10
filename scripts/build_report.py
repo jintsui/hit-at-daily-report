@@ -233,11 +233,11 @@ def downsample_map(v, step=15):
                     for a, b, c, d in zip(tts, x, y, sp)]
         minx = min(minx, float(np.nanmin(x))); maxx = max(maxx, float(np.nanmax(x)))
         miny = min(miny, float(np.nanmin(y))); maxy = max(maxy, float(np.nanmax(y)))
-    # 场地若为竖向(南北向长于东西向), 交换 x/y 使轨迹横向铺满画布
+    # 场地若为竖向(南北向长于东西向), 交换 x/y 使轨迹横向铺满画布; 同时对横向取反实现左右镜像
     if (maxy - miny) > (maxx - minx):
         for vid in list(veh):
-            veh[vid] = [[a, c, b, d] for a, b, c, d in veh[vid]]
-        minx, maxx, miny, maxy = miny, maxy, minx, maxx
+            veh[vid] = [[a, -c, b, d] for a, b, c, d in veh[vid]]
+        minx, maxx, miny, maxy = -maxy, -miny, minx, maxx
     return {
         "bounds": {"minx": minx, "maxx": maxx, "miny": miny, "maxy": maxy},
         "day0": day0.strftime("%Y-%m-%d %H:%M:%S"),
